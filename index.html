@@ -540,6 +540,20 @@
       margin-bottom: 1rem;
     }
 
+    .framework-case-label {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      margin: 0.7rem 0 0;
+      padding: 0.32rem 0.62rem;
+      border: 1px solid rgba(154, 168, 148, 0.34);
+      border-radius: 999px;
+      color: var(--sage-deep);
+      background: rgba(154, 168, 148, 0.12);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
     .framework-kicker {
       margin: 0 0 0.3rem;
       color: var(--sage-deep);
@@ -2892,6 +2906,7 @@
           <p class="framework-kicker">学后作业</p>
           <h2>公司投资分析框架</h2>
           <p>读完招股书、问询回复和外部分析后，把具体内容填回这六个问题里，最后压缩成一句投资判断。</p>
+          <span class="framework-case-label" data-framework-case>当前案例：南网数字</span>
         </div>
         <div class="framework-grid">
           <section class="framework-card">
@@ -3003,12 +3018,46 @@
     const tocNavs = document.querySelectorAll('[data-case-toc]');
     const topLink = document.querySelector('.back-top');
     const frameworkFills = document.querySelectorAll('.analysis-framework .framework-fill');
+    const frameworkCaseLabel = document.querySelector('[data-framework-case]');
+
+    function getActiveCaseId() {
+      return document.querySelector('.case-panel.is-active')?.id || caseSelect?.value || 'case-nw';
+    }
+
+    function getCaseTitle(id) {
+      return document.getElementById(id)?.dataset.caseTitle || id;
+    }
+
+    function frameworkKey(id, index) {
+      return `psggipo-analysis-framework:${id}:${index}`;
+    }
+
+    function migrateLegacyFrameworkNotes() {
+      frameworkFills.forEach((field, index) => {
+        const legacyKey = `psggipo-analysis-framework:${index}`;
+        const nextKey = frameworkKey('case-nw', index);
+        const legacyValue = localStorage.getItem(legacyKey);
+        if (legacyValue && !localStorage.getItem(nextKey)) {
+          localStorage.setItem(nextKey, legacyValue);
+        }
+      });
+    }
+
+    function loadFrameworkNotes(id = getActiveCaseId()) {
+      frameworkFills.forEach((field, index) => {
+        field.textContent = localStorage.getItem(frameworkKey(id, index)) || '';
+      });
+      if (frameworkCaseLabel) {
+        frameworkCaseLabel.textContent = `当前案例：${getCaseTitle(id)}`;
+      }
+    }
 
     function setCase(id) {
       panels.forEach(panel => panel.classList.toggle('is-active', panel.id === id));
       caseButtons.forEach(button => button.classList.toggle('is-active', button.dataset.case === id));
       tocNavs.forEach(nav => nav.classList.toggle('is-active', nav.dataset.caseToc === id));
       if (caseSelect) caseSelect.value = id;
+      loadFrameworkNotes(id);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       window.setTimeout(markCurrentSection, 260);
     }
@@ -3027,12 +3076,12 @@
       caseSelect.addEventListener('change', event => setCase(event.target.value));
     }
 
+    migrateLegacyFrameworkNotes();
+    loadFrameworkNotes();
+
     frameworkFills.forEach((field, index) => {
-      const key = `psggipo-analysis-framework:${index}`;
-      const saved = localStorage.getItem(key);
-      if (saved) field.textContent = saved;
       field.addEventListener('input', () => {
-        localStorage.setItem(key, field.textContent.trim());
+        localStorage.setItem(frameworkKey(getActiveCaseId(), index), field.textContent.trim());
       });
     });
 
